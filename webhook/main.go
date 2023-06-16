@@ -11,13 +11,8 @@ import (
 
 func main() {
 	setLogger()
-
-	// handle our core application
 	http.HandleFunc("/mutate-pods", mutation.MutatePod)
 	http.HandleFunc("/health", ServeHealth)
-
-	// start the server
-	// listens to clear text http on port 8080 unless TLS env var is set to "true"
 	if os.Getenv("TLS") == "true" {
 		cert := "/etc/admission-webhook/tls/tls.crt"
 		key := "/etc/admission-webhook/tls/tls.key"
@@ -36,7 +31,6 @@ func ServeHealth(w http.ResponseWriter, r *http.Request) {
 
 func setLogger() {
 	logrus.SetLevel(logrus.DebugLevel)
-
 	lev := os.Getenv("LOG_LEVEL")
 	if lev != "" {
 		llev, err := logrus.ParseLevel(lev)
@@ -45,7 +39,6 @@ func setLogger() {
 		}
 		logrus.SetLevel(llev)
 	}
-
 	if os.Getenv("LOG_JSON") == "true" {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}

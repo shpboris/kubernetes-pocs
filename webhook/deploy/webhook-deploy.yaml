@@ -16,8 +16,8 @@ spec:
         app: simple-kubernetes-webhook
     spec:
       containers:
-        - image: shpboris/simple-kubernetes-webhook
-          imagePullPolicy: Always
+        - image: shpboris/simple-kubernetes-webhook:local
+          imagePullPolicy: Never
           name: simple-kubernetes-webhook
           env:
             - name: TLS
