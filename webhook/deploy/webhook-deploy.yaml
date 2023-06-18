@@ -26,6 +26,9 @@ spec:
               value: "trace"
             - name: LOG_JSON
               value: "false"
+          envFrom:
+            - configMapRef:
+                name: webhook-config-map
           volumeMounts:
             - name: tls
               mountPath: "/etc/admission-webhook/tls"

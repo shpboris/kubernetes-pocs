@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-config-map
+  namespace: apps
+data:
+  conf: |
+    key1=value1
+    key2=value2

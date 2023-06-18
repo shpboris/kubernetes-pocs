@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-config-map
+data:
+  INIT_CONTAINER_CONFIG: '{"command":["/bin/sh","-c"],"args":["touch /bootstrap/data/dataset\necho \"row 1\" > /bootstrap/data/dataset\necho \"row 2\" >> /bootstrap/data/dataset\n"],"image":"busybox:latest","imagePullPolicy":"IfNotPresent","name":"initial-setup","volumeMounts":[{"mountPath":"/bootstrap/data","name":"data-volume"},{"mountPath":"/bootstrap/config","name":"config-volume"}]}'
+  DATA_VOLUME_CONFIG: '{"name":"data-volume", "emptyDir":{}}'
+  CONFIG_VOLUME_CONFIG: '{"name":"config-volume","configMap":{"name":"volume-config-map"}}'
+  DATA_VOLUME_MOUNT_CONFIG: '{"name":"data-volume", "mountPath":"/bootstrap/data"}'
+  CONFIG_VOLUME_MOUNT_CONFIG: '{"name":"config-volume", "mountPath":"/bootstrap/config"}'
