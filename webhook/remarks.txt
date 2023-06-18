@@ -1,0 +1,153 @@
+1.
+Goals
+
+The goal of this exercise is to create K8s webhook which will intercept pod creation flow
+and inject additional functionality to the pod.
+
+2.
+Details of the injection
+
+2.1
+Volume named data-volume of type emptyDir
+
+2.2
+Volume named config-volume of type configMap
+
+2.3
+Init container named initial-setup that will fill data-volume with data
+
+2.4
+Mount points 
+
+For data-volume - /bootstrap/data   
+For config-volume - /bootstrap/config
+
+2.5
+Files and data created in all containers of the pod
+
+File /bootstrap/data/dataset that is created and filled by init container with:
+
+row1
+row2
+
+File /bootstrap/config/conf that is created and filled using config map with:
+
+key1=value1
+key2=value2
+
+3.
+The code for the exercise can be found here -
+https://github.com/shpboris/kubernetes-pocs/tree/main/webhook
+
+4.
+To build and push the webhook image
+
+C:\my-branches\kubernetes-pocs\webhook>nerdctl --namespace k8s.io build -t shpboris/simple-kubernetes-webhook:local .
+C:\my-branches\kubernetes-pocs\webhook>nerdctl --namespace k8s.io push shpboris/simple-kubernetes-webhook
+
+Pay attention that the image is built with "local" tag and webhook-deploy.yaml has "imagePullPolicy: Never" setting 
+and points to the image with the same tag - "image: shpboris/simple-kubernetes-webhook:local".
+
+This allows to make local changes in webhook, build local image and apply deployment that will use the local image 
+without the need to push the image to the DockerHub! 
+
+The changes related to always running vs local image are listed
+here for future possible use. For now reverting those changes to work against usual image without any special tags
+and with "imagePullPolicy: IfNotPresent"  !
+
+5.
+TLS setup between K8s API server and webhook
+
+The pod definitions will be sent from K8s API server to the webhook and this requires TLS.
+The following script will generate CA key/cert and webhook key/cert signed by CA - C:\my-branches\kubernetes-pocs\webhook\scripts\gen-certs.sh
+The script should be invoked from WSL --- 
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/webhook/scripts$ ./gen-certs.sh
+
+The script will also create a K8s secret yaml (named simple-kubernetes-webhook-tls) of type tls with webhook's key/cert (called server.key and server.crt).
+This secret will be mounted inside webhook-deploy.yaml and used for the TLS by webhook server.
+
+The K8s API server will need to validate the cert received from the webhook, so it will use CA crt for this.
+Script emits the CA cert to the console so you should take it and put within the caBundle field in mutating-config.yaml
+
+6.
+After running the script from #5 above, the relevant TLS related stuff is already generated and incorporated to
+mutating-config.yaml and webhook-tls-secret.yaml. In addition, based on #4 above the webhook image is built.
+
+So now we can deploy a webhook (from our project source code) into the default namespace using ----
+C:\my-branches\kubernetes-pocs\webhook>kubectl apply -f deploy
+
+The webhook is configured to intercept pod's creation in any namespace that is marked with admission-webhook: enabled
+label. So a namespace with such a label is created as a part of instruction above and we will deploy our pods to it in order for webhook to intercept the flow.
+
+7.
+To deploy the pod and see the injection working, apply the following (from our project source code)
+C:\my-branches\kubernetes-pocs\webhook\usage-example>kubectl apply -f deployment.yaml
+
+The injection is applied because the pod is deployed to the injection enabled namespace (checked in mutating-config.yaml) and pod has
+simple-webhook/injection-enabled: "true" annotation (checked in webhook's code).
+
+After applying this deployment all the injection details listed in #2 above should be visible in Lens and in the pod's shell.
+
+8.
+Deployment files overview
+
+8.1
+mutating-config.yaml
+Main configuration of webhook - which operations it intercepts, where its endpoint, with which CA cert its traffic should be verified etc.
+
+8.1
+webhook-deploy.yaml
+Deployment of the webhook logic itself
+
+8.1
+webhook-svc.yaml
+Service of the webhook - this is the endpoint defined in 8.1 above
+
+8.1
+webhook-tls-secret.yaml
+Provides key/cert pair to the webhook webserver
+
+8.1
+webhook-config-map.yaml
+Defines the details of the injections that webhook will perform
+
+8.1
+volume-config-map.yaml
+Will be used as a content of config map volume.
+
+8.1
+app-ns.yaml
+Creates a namespace with "admission-webhook: enabled" label so we can deploy our pods to it.
+
+8.1
+usage-example/deployment.yaml
+Example of deployment with simple-webhook/injection-enabled: "true" annotation that will be intercepted by our webhook upon deploy.
+
+9.
+In order to make some additions to pods with webhook, the great approach is first do them manually in deployment.yaml file,
+perform the deployment and then fetch a json version of the deployment using the following ----
+kubectl -n apps get deployment usersopenapi-dpl -o json
+
+Then the relevant snippets might be used within the webhook's code!.
+
+10.
+Resources
+
+10.1
+Main resource for this exercise, great precise info with link to GitHub - https://slack.engineering/simple-kubernetes-webhook/ 
+
+10.2
+Might be useful
+
+https://banzaicloud.com/blog/k8s-admission-webhooks/
+https://trstringer.com/kubernetes-mutating-webhook/
+https://medium.com/ibm-cloud/diving-into-kubernetes-mutatingadmissionwebhook-6ef3c5695f74
+https://medium.com/ovni/writing-a-very-basic-kubernetes-mutating-admission-webhook-398dbbcb63ec
+
+
+
+
+
+
+
+
