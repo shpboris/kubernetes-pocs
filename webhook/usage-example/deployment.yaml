@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usersopenapi-dpl
+  namespace: apps
+  labels:
+    app: usersopenapi-lbl
+spec:
+  selector:
+    matchLabels:
+      app: usersopenapi-lbl
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: usersopenapi-lbl
+      annotations:
+        simple-webhook/injection-enabled: "true"
+    spec:
+      containers:
+        - name: usersopenapi
+          image: shpboris/usersopenapi
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              protocol: TCP
