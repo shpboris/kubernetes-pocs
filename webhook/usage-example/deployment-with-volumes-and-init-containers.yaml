@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usersopenapi-dpl
+  namespace: apps
+  labels:
+    app: usersopenapi-lbl
+spec:
+  selector:
+    matchLabels:
+      app: usersopenapi-lbl
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: usersopenapi-lbl
+    spec:
+      containers:
+        - name: usersopenapi
+          image: shpboris/usersopenapi
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: data-volume
+              mountPath: /bootstrap/data
+            - name: config-volume
+              mountPath: /bootstrap/config
+      initContainers:
+        - name: initial-setup
+          image: busybox:latest
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - |
+              touch /bootstrap/data/dataset
+              echo "row 1" > /bootstrap/data/dataset
+              echo "row 2" >> /bootstrap/data/dataset
+          volumeMounts:
+            - name: data-volume
+              mountPath: /bootstrap/data
+            - name: config-volume
+              mountPath: /bootstrap/config
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: init-conf-configmap
