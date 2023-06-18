@@ -20,7 +20,7 @@ spec:
       containers:
         - name: usersopenapi
           image: shpboris/usersopenapi
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               protocol: TCP
