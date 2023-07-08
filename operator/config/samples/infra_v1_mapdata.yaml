@@ -1,0 +1,12 @@
+apiVersion: infra.shpboris/v1
+kind: MapData
+metadata:
+  labels:
+    app.kubernetes.io/name: mapdata
+    app.kubernetes.io/instance: mapdata-sample
+    app.kubernetes.io/part-of: operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: operator
+  name: mapdata-sample
+spec:
+  # TODO(user): Add fields here
