@@ -1,0 +1,172 @@
+1.
+Goals
+
+The goal of the exercise is to create an operator that gets notifications about creation of the instances
+of the CRD (custom resource definition) and creates a K8s config map based on the CRD instance.
+More specifically, config map name and data defined based on the info within the CRD instance.
+
+2.
+Theory
+
+The operator itself is just a typical K8s controller *acting upon the CRD instance create/update/delete*
+The process of operator creation consists of:
+
+2.1
+Creating CRD - this defines a structure for custom resource instances.
+
+2.2
+Create instances of CRD above aligned to CRD schema.
+
+2.3
+Defining controller that monitors K8s cluster for relevant events related to the CRD instance
+creation/update or deletion and upon such event performs some custom logic (like creating pods, services, config maps or
+executing any arbitrary custom logic).
+
+Seems like creating such controller requires to deal with some low level details, that's why there are frameworks
+to help with this task. In this exercise kubebuilder is used (another option is Operator SDK which is based on kubebuilder).
+With kubebuilder you define the details of the API (its group and name) and some code and config files are generated.
+The code includes an empty representation of the CRD and an empty method that will be called when instance of the CRD is created/updated/deleted.
+In addition, K8s yamls are generated that 1)allow to deploy a controller 2)provide needed service accounts, roles etc
+to a controller within K8s cluster.
+
+All that remains to do is change a CRD structure and generate corresponding CRD schema, implement custom logic within
+the Reconcile method, deploy the solution to K8s cluster and create some instances of the CRD in order to trigger
+the flow.
+
+
+3.
+Setup
+
+3.1
+Install Golang in WSL
+
+Remove old Golang
+
+cd ~
+sudo apt-get remove golang-go
+sudo apt-get remove --auto-remove golang-go
+rm -rf /usr/local/go
+
+Download and install new Golang
+
+curl -OL https://go.dev/dl/go1.20.5.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.20.5.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+
+sudo vi $HOME/.profile
+Add the following:
+export PATH=$PATH:/usr/local/go/bin
+
+3.2
+Install Kubebuilder
+
+curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH) && chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
+
+3.3
+Init project and create stubs
+
+kubebuilder init --domain shpboris --repo shpboris/operator
+
+This to prevent signature checks/certs verification failure on the next command
+export GOSUMDB=off
+export GONOSUMDB=*
+
+kubebuilder create api --group infra --version v1 --kind MapData
+
+3.4.
+Make changes to the code
+Specifically, to C:\my-branches\kubernetes-pocs\operator\api\v1\mapdata_types.go
+
+3.5
+Generate the CRD based on code
+make manifests
+Specifically, generates C:\my-branches\kubernetes-pocs\operator\config\crd\infra.shpboris_mapdata.yaml
+
+3.6
+Deploy CRD
+make install
+
+3.7
+Start the controller
+make run
+
+[Alternatively, run C:\my-branches\kubernetes-pocs\operator\internal\controller\mapdata_controller.go
+In IDE. Don't forget to pass KUBE_CONFIG=C:\Users\shpilb\.kube\config env variable.]
+
+3.8
+This creates a CR - i.e instance of the CRD
+C:\my-branches\kubernetes-pocs\operator>kubectl apply -f config/samples/infra_v1_mapdata.yaml
+
+3.9
+Exploring CRD and CRs
+
+3.9.1
+CRDs instructions:
+
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$ kubectl get crds | grep mapdata
+mapdata.infra.shpboris
+
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$ kubectl describe crd mapdata.infra.shpboris
+
+3.9.2
+Corresponding CRs instructions:
+
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$ kubectl get mapdata
+NAME             AGE
+mapdata-sample   111m
+kubectl describe mapdata mapdata-sample
+
+3.10
+Build and push image
+C:\my-branches\kubernetes-pocs\operator>nerdctl --namespace k8s.io build -t shpboris/controller .
+C:\my-branches\kubernetes-pocs\operator>nerdctl --namespace k8s.io push shpboris/controller
+
+3.11
+Deploy to K8s cluster
+
+3.11.1
+Deploy
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$  ./bin/kustomize build config/default | kubectl apply -f -
+
+Output was:
+namespace/operator-system created
+customresourcedefinition.apiextensions.k8s.io/mapdata.infra.shpboris created
+serviceaccount/operator-controller-manager created
+clusterrole.rbac.authorization.k8s.io/operator-leader-election-role created
+clusterrole.rbac.authorization.k8s.io/operator-manager-role created
+clusterrolebinding.rbac.authorization.k8s.io/operator-leader-election-rolebinding created
+clusterrolebinding.rbac.authorization.k8s.io/operator-manager-rolebinding created
+deployment.apps/operator-controller-manager created
+
+3.11.2
+Undeploy
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$  ./bin/kustomize build config/default | kubectl delete -f -
+
+3.11.3
+Get all yaml files after kustomize
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$  ./bin/kustomize build config/default
+
+3.11.4
+Deploy without kustomize (using pre created deploy-all.yaml)
+
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$ kubectl apply -f config/deploy-all/deploy-all.yaml
+shpboris@W11CRJPJR3:/mnt/c/my-branches/kubernetes-pocs/operator$ kubectl delete -f config/deploy-all/deploy-all.yaml
+
+4.
+Resources
+
+4.1
+Main resource - https://betterprogramming.pub/build-a-kubernetes-operator-in-10-minutes-11eec1492d30
+
+4.2
+Great theory and Java based low level operator creation !
+https://refactorfirst.com/create-kubernetes-custom-resource-definition-crd
+https://refactorfirst.com/java-spring-boot-kubernetes-controller
+
+4.3
+Operator SDK
+https://developers.redhat.com/blog/2020/08/21/hello-world-tutorial-with-kubernetes-operators#getting_started_with_kubernetes_operators
+https://medium.com/codex/demystifying-kubernetes-operators-with-a-helloworld-899084e34eff
+
+
+
