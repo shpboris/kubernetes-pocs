@@ -57,7 +57,7 @@ func (r *MapDataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var mapData infrav1.MapData
 	if err := r.Get(ctx, req.NamespacedName, &mapData); err != nil {
-		logrus.Error(err, "unable to fetch MapData")
+		logrus.Error(err, "Unable to fetch MapData")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	logrus.Info("Received new MapData object: " + mapData.Spec.Mapname)
@@ -76,36 +76,34 @@ func (r *MapDataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *MapDataReconciler) SyncResources(mapData infrav1.MapData) {
 	logrus.Print("Started SyncResources")
 	ctx := context.Background()
-	var clientset *kubernetes.Clientset
 
-	kubeconfig := os.Getenv("KUBE_CONFIG")
-	if kubeconfig == "" {
-		config, err := rest.InClusterConfig()
+	var config *rest.Config
+	var err error
+	kubeConfig := os.Getenv("KUBE_CONFIG")
+	if kubeConfig == "" {
+		logrus.Info("Using in-cluster config based on service account")
+		config, err = rest.InClusterConfig()
 		if err != nil {
-			logrus.Error(err)
-			return
-		}
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			logrus.Error(err)
+			logrus.Error(err, "Unable to get in-cluster config")
 			return
 		}
 	} else {
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		logrus.Info("Using outside-cluster config based on .kube/config")
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 		if err != nil {
-			logrus.Error(err)
-			return
-		}
-		clientset, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			logrus.Error(err)
+			logrus.Error(err, "Unable to build config")
 			return
 		}
 	}
-	//configMaps, err := clientset.CoreV1().ConfigMaps("tutor1-system").List(ctx, metav1.ListOptions{})
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logrus.Error(err, "Failed to create new config")
+		return
+	}
 	configMaps, err := clientset.CoreV1().ConfigMaps("default").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logrus.Error(err)
+		logrus.Error(err, "Failed to list config maps")
+		return
 	}
 
 	found := false
@@ -116,6 +114,7 @@ func (r *MapDataReconciler) SyncResources(mapData infrav1.MapData) {
 		}
 	}
 	if !found {
+		logrus.Info("Creating config map named: " + mapData.Spec.Mapname)
 		cm := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mapData.Spec.Mapname,
@@ -126,9 +125,9 @@ func (r *MapDataReconciler) SyncResources(mapData infrav1.MapData) {
 				"key2": mapData.Spec.Key2,
 			},
 		}
-		_, err := clientset.CoreV1().ConfigMaps("default").Create(context.Background(), cm, metav1.CreateOptions{})
+		_, err = clientset.CoreV1().ConfigMaps("default").Create(context.Background(), cm, metav1.CreateOptions{})
 		if err != nil {
-			logrus.Error(err)
+			logrus.Error(err, "Failed to create config map: "+mapData.Spec.Mapname)
 		}
 	}
 	logrus.Print("Completed SyncResources")
