@@ -33,6 +33,9 @@ All that remains to do is change a CRD structure and generate corresponding CRD 
 the Reconcile method, deploy the solution to K8s cluster and create some instances of the CRD in order to trigger
 the flow.
 
+The code explicitly configuring and using client-go lib to access K8s from the controller (both in cluster and outside the cluster)
+can be found in using-client-go branch.
+
 
 3.
 Setup

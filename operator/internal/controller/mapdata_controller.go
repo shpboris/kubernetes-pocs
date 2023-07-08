@@ -21,11 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"os"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,59 +49,20 @@ type MapDataReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *MapDataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logrus.Print("Started Reconcile")
-
 	var mapData infrav1.MapData
 	if err := r.Get(ctx, req.NamespacedName, &mapData); err != nil {
 		logrus.Error(err, "Unable to fetch MapData")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	logrus.Info("Received new MapData object: " + mapData.Spec.Mapname)
-	r.SyncResources(ctx, mapData)
-	logrus.Print("Completed Reconcile")
-	return ctrl.Result{}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *MapDataReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.MapData{}).
-		Complete(r)
-}
-
-func (r *MapDataReconciler) SyncResources(ctx context.Context, mapData infrav1.MapData) {
-	logrus.Print("Started SyncResources")
-
-	var config *rest.Config
-	var err error
-	kubeConfig := os.Getenv("KUBE_CONFIG")
-	if kubeConfig == "" {
-		logrus.Info("Using in-cluster config based on service account")
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			logrus.Error(err, "Unable to get in-cluster config")
-			return
-		}
-	} else {
-		logrus.Info("Using outside-cluster config based on .kube/config")
-		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
-		if err != nil {
-			logrus.Error(err, "Unable to build config")
-			return
-		}
-	}
-	clientset, err := kubernetes.NewForConfig(config)
+	logrus.Info("Received new MapData object named: " + mapData.Spec.Mapname)
+	configMapList := &v1.ConfigMapList{}
+	err := r.Client.List(ctx, configMapList)
 	if err != nil {
-		logrus.Error(err, "Failed to create new config")
-		return
+		logrus.Error(err, "Failed to retrieve config maps list")
+		return ctrl.Result{}, err
 	}
-	configMaps, err := clientset.CoreV1().ConfigMaps("default").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		logrus.Error(err, "Failed to list config maps")
-		return
-	}
-
 	found := false
-	for _, configMap := range configMaps.Items {
+	for _, configMap := range configMapList.Items {
 		if configMap.Name == mapData.Spec.Mapname {
 			logrus.Info("Found existing config map named: " + mapData.Spec.Mapname)
 			found = true
@@ -114,7 +70,7 @@ func (r *MapDataReconciler) SyncResources(ctx context.Context, mapData infrav1.M
 	}
 	if !found {
 		logrus.Info("Creating config map named: " + mapData.Spec.Mapname)
-		cm := &v1.ConfigMap{
+		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mapData.Spec.Mapname,
 				Namespace: "default",
@@ -124,10 +80,23 @@ func (r *MapDataReconciler) SyncResources(ctx context.Context, mapData infrav1.M
 				"key2": mapData.Spec.Key2,
 			},
 		}
-		_, err = clientset.CoreV1().ConfigMaps("default").Create(ctx, cm, metav1.CreateOptions{})
+		if err = ctrl.SetControllerReference(&mapData, configMap, r.Scheme); err != nil {
+			logrus.Error(err, "Failed to set controller reference")
+			return ctrl.Result{}, err
+		}
+		err = r.Client.Create(ctx, configMap)
 		if err != nil {
 			logrus.Error(err, "Failed to create config map: "+mapData.Spec.Mapname)
+			return ctrl.Result{}, err
 		}
 	}
-	logrus.Print("Completed SyncResources")
+	logrus.Print("Completed Reconcile")
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *MapDataReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&infrav1.MapData{}).
+		Complete(r)
 }
