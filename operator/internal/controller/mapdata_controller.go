@@ -61,7 +61,7 @@ func (r *MapDataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	logrus.Info("Received new MapData object: " + mapData.Spec.Mapname)
-	r.SyncResources(mapData)
+	r.SyncResources(ctx, mapData)
 	logrus.Print("Completed Reconcile")
 	return ctrl.Result{}, nil
 }
@@ -73,9 +73,8 @@ func (r *MapDataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *MapDataReconciler) SyncResources(mapData infrav1.MapData) {
+func (r *MapDataReconciler) SyncResources(ctx context.Context, mapData infrav1.MapData) {
 	logrus.Print("Started SyncResources")
-	ctx := context.Background()
 
 	var config *rest.Config
 	var err error
@@ -125,7 +124,7 @@ func (r *MapDataReconciler) SyncResources(mapData infrav1.MapData) {
 				"key2": mapData.Spec.Key2,
 			},
 		}
-		_, err = clientset.CoreV1().ConfigMaps("default").Create(context.Background(), cm, metav1.CreateOptions{})
+		_, err = clientset.CoreV1().ConfigMaps("default").Create(ctx, cm, metav1.CreateOptions{})
 		if err != nil {
 			logrus.Error(err, "Failed to create config map: "+mapData.Spec.Mapname)
 		}
