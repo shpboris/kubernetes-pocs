@@ -9,4 +9,6 @@ metadata:
     app.kubernetes.io/created-by: operator
   name: mapdata-sample
 spec:
-  # TODO(user): Add fields here
+  mapname: mymap
+  key1: value1
+  key2: value2
