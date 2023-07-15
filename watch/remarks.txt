@@ -1,8 +1,28 @@
 1.
-Getting notofications about CRD instances changes
+Goals
 
-C:\Users\shpilb>kubectl get mapdata -w -o json
+The goal of this exercise is to test the lower level mechanism behind implementation of operators.
+I.e applying the custom logic upon CRD instances changes without relying on any frameworks.
 
 2.
+Theory
+
+In the code we just create a watcher that will watch for any changes of the CRD instances.
+Upon the create/update/delete of an instance, we will receive a notification from K8s API server in a form of event.
+Then we will extract from event the object (the generic map) representing the changed instance and print the data of interest.
+[It was possible to deserialize the generic map to a specific MapData instance but decided to skip it].
+
+K8s API server *PROBABLY* pushes the notifications about the changed instances over the websocket. The websocket is opened
+by the client library implementing the watcher.
+
+3.
+To create an instance of CRD for testing the watcher
+C:\my-branches\kubernetes-pocs\operator>kubectl apply -f config/samples/infra_v1_mapdata.yaml
+
+4.
+Getting notifications about CRD instances changes through kubectl
+C:\Users\shpilb>kubectl get mapdata -w -o json
+
+5.
 This is env var that point to K8s config
 KUBECONFIG=C:\Users\shpilb\.kube\config
