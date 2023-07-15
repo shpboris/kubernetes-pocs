@@ -1,0 +1,50 @@
+1.
+Goals
+
+The goal of the exercise is to create/receive an event related to an instance of my CRD.
+
+2.
+Theory
+
+Then the event is received using K8s watch functionality - i.e similarly
+to observing changes of the *CRD instances* in a watch module (C:\my-branches\kubernetes-pocs\watch), here
+we will observe the changes to the *instances of events*.
+
+3.
+To create an instance of CRD for testing the watcher
+C:\my-branches\kubernetes-pocs\operator>kubectl apply -f config/samples/infra_v1_mapdata.yaml
+
+4.
+Getting notifications about events instances changes through kubectl
+
+4.1
+Watching for any events on MapData
+
+C:\Users\shpilb>kubectl get events --namespace default --watch --field-selector involvedObject.kind=MapData
+LAST SEEN   TYPE      REASON                 OBJECT                    MESSAGE
+<unknown>   Warning   CreationNotification   mapdata/mapdata-sample1   The MapData instance was created
+<unknown>   Warning   CreationNotification   mapdata/mapdata-sample1   The MapData instance was created
+
+4.2
+Watching for events on specific object of MapData
+
+C:\Users\shpilb>kubectl get events --namespace default --watch --field-selector involvedObject.kind=MapData,involvedObject.name=mapdata-sample
+
+4.3
+Watching for pod events
+
+C:\Users\shpilb>kubectl get events --namespace default --watch --field-selector involvedObject.kind=Pod --output-watch-events=true
+
+5.
+This is env var that point to K8s config
+KUBECONFIG=C:\Users\shpilb\.kube\config
+
+6.
+Open issues
+
+The output of the following command should show events on the MapData object (similarly to Pods or any other K8s objects), but it doesn't
+
+C:\Users\shpilb>kubectl describe MapData mapdata-sample1
+
+
+

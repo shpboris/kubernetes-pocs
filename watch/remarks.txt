@@ -15,6 +15,10 @@ Then we will extract from event the object (the generic map) representing the ch
 K8s API server *PROBABLY* pushes the notifications about the changed instances over the websocket. The websocket is opened
 by the client library implementing the watcher.
 
+[Usually, the informer framework is used (or even another framework above informer providing even higher level flow) instead
+of watching the instances directly. The informer will reconnect to K8s API in case the watch fails due to network issues, it
+will also provide a cache for the received objects etc thus reducing the low level work.]
+
 3.
 To create an instance of CRD for testing the watcher
 C:\my-branches\kubernetes-pocs\operator>kubectl apply -f config/samples/infra_v1_mapdata.yaml
