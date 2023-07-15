@@ -1,0 +1,8 @@
+1.
+Getting notofications about CRD instances changes
+
+C:\Users\shpilb>kubectl get mapdata -w -o json
+
+2.
+This is env var that point to K8s config
+KUBECONFIG=C:\Users\shpilb\.kube\config
