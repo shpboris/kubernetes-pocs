@@ -1,0 +1,11 @@
+1.
+Login
+
+nerdctl login
+May be try this if above is not working -  nerdctl login registry-1.docker.io
+
+2.
+Build and push image
+
+nerdctl --namespace k8s.io build -t shpboris/ws-server .
+nerdctl --namespace k8s.io push shpboris/ws-server

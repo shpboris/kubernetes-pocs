@@ -1,0 +1,54 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ws-server-vs
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - knative-serving/knative-ingress-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/mymsg"
+      route:
+        - destination:
+            port:
+              number: 8080
+            host: ws-server-svc.default.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-server-svc
+  labels:
+    app: ws-server-lbl
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: ws-server-lbl
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ws-server-dpl
+  labels:
+    app: ws-server-lbl
+spec:
+  selector:
+    matchLabels:
+      app: ws-server-lbl
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ws-server-lbl
+    spec:
+      containers:
+        - name: ws-server
+          image: shpboris/ws-server
+          ports:
+            - containerPort: 8080

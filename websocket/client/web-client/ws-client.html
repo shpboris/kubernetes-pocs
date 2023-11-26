@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+
+<html>
+   <head>
+      
+      <script type = "text/javascript">
+         function WebSocketTest() {
+            
+            if ("WebSocket" in window) {
+               alert("WebSocket is supported by your Browser!");
+               
+               // Let us open a web socket
+               var ws = new WebSocket("ws://172.28.71.204:80/mymsg");
+				
+               ws.onopen = function() {
+                  
+                // Web Socket is connected, send data using send()
+				// Function to send a message with the current time
+				function sendMessage() {
+					var currentTime = new Date().toLocaleTimeString();
+					var message = "Message content, sent at " + currentTime;
+					
+					// Send the message through the WebSocket connection
+					ws.send(message);
+					console.log("Sent message:", message);
+					
+					// Ask the user if they want to close the connection after each message
+					var closeConfirmed = confirm("Do you want to close the connection?");
+					if (closeConfirmed) {
+						// Stop the periodic sending
+						clearInterval(intervalId);
+
+						// Close the WebSocket connection with a custom reason and code
+						ws.close(1000, "User requested closure");
+					}
+				}
+
+				// Initial message when the connection is open
+				sendMessage();
+
+				// Periodically send messages every 10 seconds
+				var intervalId = setInterval(sendMessage, 10000);
+               };
+				
+               ws.onmessage = function (evt) { 
+                  var received_msg = evt.data;
+				  console.log("Received message:", received_msg);
+               };
+				
+               ws.onclose = function() {                 
+                  // websocket is closed.
+                  alert("Connection is closed..."); 
+               };
+            } else {
+               // The browser doesn't support WebSocket
+               alert("WebSocket NOT supported by your Browser!");
+            }
+         }
+      </script>
+		
+   </head>
+   
+   <body>
+      <div id = "sse">
+         <a href = "javascript:WebSocketTest()">Run WebSocket</a>
+      </div>
+      
+   </body>
+</html>

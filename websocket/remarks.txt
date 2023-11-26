@@ -1,0 +1,61 @@
+1.
+Goals
+
+The goal of this exercise is to create websocket server that exposes an API that is accessed by the websocket client.
+
+2.
+Theory
+
+Websocket is a protocol that consists of the handshake and then a series of messages (frames) of specific structure sent over TCP.
+During an HTTP handshake the client is asking 1)update a connection 2)the connection update is to a websocket. The server (if it agrees)
+responds with HTTP/1.1 101 Switching Protocols. From that point, (it seems) the original underlying TCP connection that was used for the
+handshake will be preserved (and not terminated like in ususal HTTP flow) and the client
+will send WS structured frames over this connection.
+
+3.
+Setup
+
+3.1
+Code locations
+
+The server can be run from within the Goland or deployed to K8s - C:\my-branches\kubernetes-pocs\webhook\main.go
+
+The client can be run in Goland - C:\my-branches\kubernetes-pocs\websocket\client\main.go
+Or it can be a web clientthat uses JS to contact a server - C:\my-branches\kubernetes-pocs\websocket\client\web-client\ws-client.html
+
+3.2
+Deployment
+
+Build image:
+C:\my-branches\kubernetes-pocs\websocket\server>nerdctl --namespace k8s.io build -t shpboris/ws-server .
+
+Push image:
+C:\my-branches\kubernetes-pocs\websocket\server>nerdctl --namespace k8s.io push shpboris/ws-server
+
+Deploy to K8s:
+C:\my-branches\kubernetes-pocs\websocket\server\deploy>kubectl delete -f deploy-all.yml
+
+Pay attention that the VirtualService in deploy-all.yaml points to this Istio Gateway - knative-serving/knative-ingress-gateway
+I.e the Gateway is named knative-ingress-gateway and located in knative-serving namespace. If in your environment you have a different
+Gateway, change the VS accordingly (or substitute it with *).
+
+4.
+Traffic flow
+
+The WS clients (standalone and web) use this URL to connect to server in K8s - ws://172.28.71.204:80/mymsg
+In Goland the server can be accessed through - ws://localhost:8080/mymsg
+
+The 172.28.71.204 IP seems to be an IP of WSL VM and was taken from External IP field of istio-ingressgateway service in Istio namespace.
+Th Istio Load Balancer listens on IP 172.28.71.204 host port 80 - so the flow starts from there !
+
+The traffic flow passes through Load Balancer then to Istio Ingress and then through GW+VS to my service/pod
+
+In details:
+svclb-istio-ingressgateway-301bba82-rcgbc pod, port 80 -> istio-ingressgateway svc, port 80 -> istio-ingressgateway-6b6896b7fb-5zfsg pod, port 8080 ->
+knative-ingress-gateway GW + ws-server-vs VS -> ws-server-svc, port 8080 -> ws-server-dpl-6cd584974b-wcwnz pod, port 8080
+
+5.
+Resources
+
+5.1
+All the theory about websockets - https://ably.com/topic/how-do-websockets-work
