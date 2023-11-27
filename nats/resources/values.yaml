@@ -1,0 +1,7 @@
+config:
+  jetstream:
+    enabled: true
+  websocket:
+    enabled: true
+    port: 8080
+    no_tls: true

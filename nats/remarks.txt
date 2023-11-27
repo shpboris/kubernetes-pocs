@@ -1,0 +1,69 @@
+1.
+Goals
+
+The goal of this exercise is to create a NATS publisher and subscriber that run locally and send/receive messages
+to/from the NATS (or Jetstream ?) that is deployed to K8s.
+
+2.
+Theory
+
+Very basically there are 3 NATS setups -
+1)
+NATS - this is a simple publish/subscribe to subject pattern
+2)
+NATS Streaming - added streaming (i.e ability to read messages from the beginning and not just unconsumed messages),
+message persistence
+3)
+NATS JetStream - this is the latest solution and the only one that matters, the previous 2 are legacy.
+This added the concept of streams, load balancing and high availability, durability for the consumers state and many more.
+
+In NATS JetStream the message is published to a subject within a stream.
+The message is consumed from a stream/subject combo through (optional ?) consumer group consisting
+of potentially multiple clients comprising that group. Only a single client out of clients belonging to a consumer group
+will receive a message. Multiple consumer groups can subscribe to the same stream/subject combo.
+
+The stream is created with the needed properties like list of subjects, max age of messages, storage (mem or FS) etc.
+The consumer group is created with properties like if to deliver all messages even if they were sent, manual vs auto acknowledge etc.
+
+Check the link in 5.1 below for more details.
+
+3.
+Setup
+
+3.1
+Deployment
+
+The parameters to deployment (values.yaml) are located here and allow 1)jetstream and 2)websocket access to NATS
+through port 8080 (without tls) - C:\my-branches\kubernetes-pocs\nats\resources\values.yaml
+
+Add/update the needed Helm repo:
+helm repo add nats https://nats-io.github.io/k8s/helm/charts/
+helm repo update
+
+Install the NATS (from directory containing the values.yaml mentioned above):
+helm install my-nats nats/nats --values values.yaml
+
+This will create those 2 pods - nats-box-6c6b6b5df5-5s2mf (looks like related to jetstream capabilities)
+and nats-0 (primary NATS pod).
+In addition, 2 following services will be created - my-nats-headless (this headless svc for creation of DNS entries for pods)
+and my-nats (primary NATS service).
+
+4.
+Traffic flow
+
+Both publisher and subscriber in my code connect to this URL - ws://localhost:8080.
+In order for this to work, primary NATS service's (my-nats described above) port 8080 (the websocket port) should be forwarded to
+localhost and port 8080. Then the URL above will work.
+[It looks like port 4222 of my-nats service named "nats" can be sued for usual NATS sending/receiving
+of the messages (i.e not through websocket)]
+
+5.
+Resources
+
+5.1
+Great theory + Golang code example !!!
+https://dzone.com/articles/implementing-nats-jetstream-as-queues-in-golang-a
+
+5.2
+Using CLI to create streams/consumers etc
+http://thinkmicroservices.com/blog/2021/jetstream/nats-jetstream.html
