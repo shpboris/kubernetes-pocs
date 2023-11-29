@@ -57,4 +57,8 @@ func main() {
 
 func printMessage(msg jetstream.Msg) {
 	logrus.Info("Received message: ", string(msg.Data()))
+	/*	values := msg.Headers().Values("my-header")
+		logrus.Info("First header value: ", msg.Headers().Get("my-header"))
+		logrus.Info("First header value: ", values[0])
+		logrus.Info("Second header value: ", values[0])*/
 }

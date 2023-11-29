@@ -38,6 +38,8 @@ func main() {
 		for {
 			<-ticker.C
 			msg := createMessage()
+			//message is pushed to stream/subject combo
+			//based on message's subject which is unique across all streams !
 			if _, err := js.PublishMsg(ctx, msg); err != nil {
 				log.Fatal(err)
 			}
