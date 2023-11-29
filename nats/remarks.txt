@@ -58,12 +58,29 @@ localhost and port 8080. Then the URL above will work.
 of the messages (i.e not through websocket)]
 
 5.
-Resources
+Code
 
 5.1
-Great theory + Golang code example !!!
-https://dzone.com/articles/implementing-nats-jetstream-as-queues-in-golang-a
+Simple NATS Pub/Sub is located here -
+C:\my-branches\kubernetes-pocs\nats\publisher
+C:\my-branches\kubernetes-pocs\nats\subscriber
 
 5.2
+Jetstream flow is located here -
+C:\my-branches\kubernetes-pocs\nats\publisher-jetstream
+C:\my-branches\kubernetes-pocs\nats\subscriber-jetstream
+
+6.
+Resources
+
+6.1
+Great theory (although old API are used ?) + Golang code example !!!
+https://dzone.com/articles/implementing-nats-jetstream-as-queues-in-golang-a
+
+6.2
+Upto date official examples for all the cases - was used for jetstream examples in this exercise !!!!!!!!!
+https://natsbyexample.com/examples/jetstream
+
+6.3
 Using CLI to create streams/consumers etc
 http://thinkmicroservices.com/blog/2021/jetstream/nats-jetstream.html
